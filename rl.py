@@ -89,7 +89,37 @@ class PortfolioEnv(gym.Env):
         self.portfolio_value = [1.0]
         return self._get_observation()
 
+import pandas as pd
+from sklearn.preprocessing import LabelEncoder
 
+# Load dataset (Ensure it contains 'date', 'ticker', 'daily_price', 'sector', and technical indicators)
+df = pd.read_csv("stock_data.csv")
+
+### --- Discretization for Technical Indicators --- ###
+
+# RSI (Relative Strength Index) into 5 bins
+df["RSI_bin"] = pd.qcut(df["RSI"], q=5, labels=False)
+
+# MACD into 5 bins
+df["MACD_bin"] = pd.qcut(df["MACD"], q=5, labels=False)
+
+# Bollinger Band %B into 5 bins
+df["BB_bin"] = pd.qcut(df["BB_percent"], q=5, labels=False)
+
+# Drop original continuous columns (since we use discrete versions)
+df = df.drop(columns=["RSI", "MACD", "BB_percent"])
+
+### --- Encoding Sector Information --- ###
+
+# Label Encoding for sector categories
+le = LabelEncoder()
+df["sector_encoded"] = le.fit_transform(df["sector"])
+
+# Drop string-based sector names
+df = df.drop(columns=["sector"])
+
+# Print sample data
+print(df.head())
 # Load your dataset (Ensure it has 'date', 'ticker', 'daily_price', technical indicators, sector)
 df = pd.read_csv("stock_data.csv")
 
