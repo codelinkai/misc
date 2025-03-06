@@ -7,7 +7,24 @@ import gym
 from gym import spaces
 import numpy as np
 from stable_baselines3 import DQN
+# Reset environment
+obs = env.reset()
 
+# Get predicted action from trained Q-learning (DQN) model
+action, _ = model.predict(obs)
+
+# Decode action into individual stock adjustments
+decoded_action = decode_action(action, env.num_stocks)
+
+# Convert into portfolio weights
+weights = env.portfolio_allocations.copy()
+weights += decoded_action * 0.05  # Adjust weights by ±5%
+weights = np.maximum(weights, 0)  # Ensure no negative weights
+weights /= np.sum(weights)  # Normalize to sum 1.0
+
+# Output the final weights
+print("Stock Tickers:", env.df["ticker"].unique())
+print("Final Portfolio Weights:", weights)
 class PortfolioQEnv(gym.Env):
     """
     Custom Portfolio Optimization Environment for Q-Learning.
