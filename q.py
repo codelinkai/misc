@@ -7,6 +7,64 @@ import gym
 from gym import spaces
 import numpy as np
 from stable_baselines3 import DQN
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Load trained model
+model = DQN.load("dqn_portfolio")
+
+# Test environment (Uses only test data)
+env_test = PortfolioQEnv(df_test)
+
+# Reset test environment
+obs = env_test.reset()
+done = False
+portfolio_values = []
+
+while not done:
+    action, _ = model.predict(obs)  # Predict action
+    obs, reward, done, _ = env_test.step(action)  # Apply action in test env
+    portfolio_values.append(env_test.portfolio_value[-1])  # Track portfolio value
+
+# Convert final portfolio allocations into a dictionary
+tickers = env_test.df["ticker"].unique()
+final_weights = {tickers[i]: env_test.portfolio_allocations[i] for i in range(len(tickers))}
+
+# Calculate final portfolio value
+final_portfolio_value = env_test.portfolio_value[-1]
+
+# Calculate profit (final - initial)
+initial_portfolio_value = env_test.portfolio_value[0]
+profit = final_portfolio_value - initial_portfolio_value
+
+# Calculate Sharpe Ratio (Risk-adjusted return)
+returns = np.diff(portfolio_values) / portfolio_values[:-1]  # Daily returns
+avg_return = np.mean(returns)
+volatility = np.std(returns) + 1e-8  # Avoid division by zero
+sharpe_ratio = avg_return / volatility  # Risk-adjusted performance
+
+# ✅ Corrected Maximum Drawdown (as percentage)
+cumulative_max = np.maximum.accumulate(portfolio_values)  # Rolling max
+drawdowns = (portfolio_values - cumulative_max) / cumulative_max  # Percentage drop
+max_drawdown = np.min(drawdowns) * 100  # Convert to percentage
+
+# Print results
+print("Final Portfolio Weights:", final_weights)
+print(f"Final Portfolio Value: ${final_portfolio_value:.2f}")
+print(f"Profit: ${profit:.2f}")
+print(f"Sharpe Ratio: {sharpe_ratio:.4f}")
+print(f"Maximum Drawdown: {max_drawdown:.2f}%")  # ✅ Percentage
+
+# Plot portfolio value over test period
+plt.plot(portfolio_values, label="Portfolio Value")
+plt.plot(cumulative_max, linestyle="dashed", label="Cumulative Max")
+plt.title("Portfolio Performance on Test Data")
+plt.xlabel("Time Steps")
+plt.ylabel("Portfolio Value ($)")
+plt.legend()
+plt.show()
+
+
 # Reset environment
 obs = env.reset()
 
